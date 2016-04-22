@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% load i18n %}
+{% load annotator_tags %}
+{% block title %}{% trans 'Constructicon Annotation' %}{% endblock %}
+{% block meta_content %}{% trans 'Annotation' %}{% endblock %}
+
+{% block scripts %}
+{% for i in j %}
+     <script>
+    {{ i|safe }}
+    </script>
+    {% endfor %}
+
+{% endblock %}
+    {% block upper-row %}
+            {% endblock %}
+
+    {% block other %}
+
+        <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+
+  <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+        <style>
+        .ui-autocomplete { position: absolute; cursor: default;z-index:30000 !important;}
+        </style>
+<script type="text/javascript">
+$(document).ready(function(){
+    $(".token[title*='bastard']").css( "text-decoration", "underline" );
+});
+
+</script>
+
+    {% endblock %}
+
+{% block content_header %}{% trans 'Annotate text' %}{% endblock content_header %}
+{% block content %}
+    {% if alert %}
+                  <div class="alert alert-warning alert-dismissible small" role="alert">
+  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+  <strong>Warning!</strong>
+</div>
+              {% endif %}
+    {% for doc, sents in data %}
+    <div class="row">
+      <div class="col-md-6">
+          <h2>
+        <span class="lead">{% trans 'Annotate text' %}:</span> <strong>{{doc}}</strong>
+
+    </h2>
+      </div>
+      <div class="col-md-6">
+      <div class="row">
+          <h2 align="right">
+          <div class="col-md-offset-4 col-md-3">
+              {% if doc.annotated %}
+                  {% if request.user|has_group:"STAFF"%}
+              {% if not doc.checked %}
+                  <form action="mark" method="POST">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                <button type="submit" class="btn btn-warning btn-sm" value="checked" name="mark">
+                  <span class="glyphicon glyphicon-ok" aria-hidden="true"></span> {% trans 'Checked' %}
+                </button></form>
+              {% endif %}
+                      {% if doc.checked %}
+                  <form action="mark" method="POST">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                <button type="submit" class="btn btn-warning btn-sm" value="unchecked" name="mark">
+                  <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> {% trans 'Not checked' %}
+                </button></form>
+              {% endif %}
+                  {% endif %}
+          {% endif %}
+          </div>
+          <div class="col-md-3">
+              {% if not doc.annotated %}
+              <form action="mark" method="POST">
+              <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                 <button type="submit" class="btn btn-warning btn-sm" value="annotated" name="mark">
+                  <span class="glyphicon glyphicon-thumbs-up" aria-hidden="true"></span> {% trans 'Annotated' %}
+                </button>
+              </form></h2>
+      {% endif %}
+      {% if doc.annotated %}
+              <form action="mark" method="POST">
+              <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                 <button type="submit" class="btn btn-warning btn-sm" value="unannotated" name="mark">
+                  <span class="glyphicon glyphicon-thumbs-down" aria-hidden="true"></span> {% trans 'Not annotated' %}
+                </button>
+              </form></h2>
+      {% endif %}
+      </div>
+
+      </div>
+      </div>
+
+	<div class="row">
+    <nobr>
+            {% for sent in sents %}
+                <span id="{{ sent.id }}" class="original_sentence">
+                    {{sent.tagged|safe|linebreaksbr}}
+                </span>
+            {% endfor %}
+    </nobr>
+    {% if sents.paginator.num_pages > 1 %}
+
+    <nav>
+  <ul class="pagination pagination-sm">
+       {% if sents.has_previous %}
+           <li>
+      <a href="/learner_corpus{{ path }}&page={{ result.previous_page_number }}" aria-label="Previous">
+        <span aria-hidden="true">&laquo;</span>
+      </a>
+    </li>
+            {% endif %}
+{% for i in sents.paginator.page_range %}
+    <li
+    {% if sents.number == i %}
+            class="active"
+            {% endif %}
+    ><a href="/constructicon{{ path }}&page={{ i }}">{{ i }}</a></li>
+        {% endfor %}
+  {% if sents.has_next %}
+      <li>
+      <a href="/constructicon{{ path }}&page={{ sents.next_page_number }}" aria-label="Next">
+        <span aria-hidden="true">&raquo;</span>
+      </a>
+    </li>
+            {% endif %}
+
+  </ul>
+</nav>
+        {% endif %}
+    </div>
+{% endfor %}
+    <div class="btn-group" role="group">
+
+    <a class="btn btn-default btn-sm" href="/constructicon/download_file/{{ doc_id }}/ann" role="button">{% trans 'Download annotation as csv' %}</a>
+    <a class="btn btn-default  btn-sm" href="/constructicon/download_file/{{ doc_id }}/tokens" role="button">{% trans 'Download text as csv' %}</a>
+        <a class="btn btn-default  btn-sm" href="/constructicon/download_file/{{ doc_id }}/text" role="button">{% trans 'Download plain text' %}</a>
+     <button type="button" class="btn btn-default  btn-sm" data-toggle="modal" data-target="#upload_csv">{% trans "Upload annotation" %}</button>
+
+    </div>
+
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="upload_csv">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{% trans 'Загрузить файл с разметкой' %}</h4>
+      </div>
+      <div class="modal-body">
+        <form action="handle_upload" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+  <div class="form-group">
+    <label for="exampleInputFile">{% trans 'CSV с разметкой' %}</label>
+    <input type="file" name="InputFile">
+    <p class="help-block">{% trans 'Выберите файл с разметкой. Убедитесь, что файл сохранен в кодировке utf-8.' %}</p>
+  </div>
+             <div class="checkbox">
+    <label>
+      <input type="checkbox" name="has_headers"> {% trans 'В файле есть строка заголовков.' %}
+    </label>
+  </div>
+  <button type="submit" class="btn btn-default">{% trans 'Загрузить' %}</button>
+</form>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+{% endblock %}
